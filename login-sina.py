@@ -3,68 +3,47 @@ import base64
 import re
 import urllib
 import urllib.parse
-import rsa
+import rsade
 import json
 import binascii
 from bs4 import BeautifulSoup
+import time
+import urllib.request
 
+unix_time = str(int(time.time()*1000))
+headers = {'User-Agent': '*iaskspider/2.0(+http://iask.com/help/help_index.html”) *Mozilla/5.0 (compatible; iaskspider/1.0; MSIE 6.0)'}
+pre_su = base64.b64encode('13038305792'.encode(encoding='utf-8'))
+prelogin_url = 'https://login.sina.com.cn/sso/prelogin.php?entry=weibo&callback=sinaSSOController.preloginCallBack&su='+urllib.request.quote(pre_su.decode(encoding = 'utf-8'))+'&rsakt=mod&client=ssologin.js(v1.4.18)&_='+unix_time
+post_url = 'http://login.sina.com.cn/sso/login.php?client=ssologin.js(v1.4.18)&_='+unix_time
+print(prelogin_url)
+r = requests.session()
+pre_page = r.get(prelogin_url,headers = headers)
+print(pre_page.text)
 
-
-def userlogin(username, password):
-        session = requests.Session()
-        headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 6.1; Win64; x64; rv:48.0) Gecko/20100101 Firefox/48.0'}
-        url_prelogin = 'http://login.sina.com.cn/sso/prelogin.php?entry=weibo&callback=sinaSSOController.preloginCallBack&su=&rsakt=mod&client=ssologin.js(v1.4.5)&_=1364875106625'
-        url_login = 'http://login.sina.com.cn/sso/login.php?client=ssologin.js(v1.4.5)'
-
-        # get servertime,nonce, pubkey,rsakv
-        resp = session.get(url_prelogin,headers=headers)
-        json_data = re.findall(r'(?<=\().*(?=\))', resp.text)[0]
-        data = json.loads(json_data)
-
-        servertime = data['servertime']
-        nonce = data['nonce']
-        pubkey = data['pubkey']
-        rsakv = data['rsakv']
-
-        # calculate su
-        print(urllib.parse.quote(username))
-        su = base64.b64encode(username.encode(encoding="utf-8"))
-
-        # calculate sp
-        rsaPublickey = int(pubkey, 16)
-        key = rsa.PublicKey(rsaPublickey, 65537)
-        message = str(servertime) + '\t' + str(nonce) + '\n' + str(password)
-        sp = binascii.b2a_hex(rsa.encrypt(message.encode(encoding="utf-8"), key))
-        postdata = {
-            'entry': 'weibo',
-            'gateway': '1',
-            'from': '',
-            'savestate': '7',
-            'userticket': '1',
-            'ssosimplelogin': '1',
-            'vsnf': '1',
-            'vsnval': '',
-            'su': su,
-            'service': 'miniblog',
-            'servertime': servertime,
-            'nonce': nonce,
-            'pwencode': 'rsa2',
-            'sp': sp,
-            'encoding': 'UTF-8',
-            'url': 'http://weibo.com/ajaxlogin.php?framelogin=1&callback=parent.sinaSSOController.feedBackUrlCallBack',
-            'returntype': 'META',
-            'rsakv': rsakv,
+post_data = {
+            "entry":"weibo",
+            "gateway":"1",
+            "from":"",
+            "savestate":"7",
+            "useticket":"1",
+            "pagerefer":"http%3A%2F%2Flogin.sina.com.cn%2Fsso%2Flogout.php%3Fentry%3Dminiblog%26r%3Dhttp%253A%252F%252Fweibo.com%252Flogout.php%253Fbackurl%253D%25252F",
+            "vsnf":"1",
+            "su":pre_su,
+            "service":"miniblog",
+            "servertime":unix_time,
+            "nonce":'F7D34H',
+            "pwencode":"rsa2",
+            "rsakv":'1330428213',
+            "sp":'',
+            "sr":"1920*1080",
+            "encoding":"UTF-8",
+            "prelt":"109",
+            "domain":"weibo.com",
+            "cdult":"2",
+            "url":"http://weibo.com/ajaxlogin.php?framelogin=1&callback=parent.sinaSSOController.feedBackUrlCallBack",
+            "returntype":"TEXT"
         }
-        resp = session.post(url_login, data=postdata,headers=headers)
-        # print resp.headers
-        print(resp.content)
-        login_url = re.findall(r'http://weibo.*&retcode=0', resp.text)
-        #
-        print(login_url)
-        respo = session.get(login_url[0],headers=headers)
-        uid = re.findall('"uniqueid":"(\d+)",', respo.text)[0]
-        url = "http://weibo.com/u/" + uid
-        respo = session.get(url)
-
-if __name__ == '__main__':
-    userlogin('13038305792','q936611560q')
+# r.post(url=post_url,headers=headers,data=post_data)
+#respond = r.get(url='http://weibo.com/3529741811/profile?topnav=1&wvr=6&is_all=1',headers= headers)
+res = requests.get('http://weibo.com',headers)
+print(res.text)
